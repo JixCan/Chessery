@@ -1,38 +1,65 @@
-.App {
-  text-align: center;
+:root{
+  --main-bg-color: #7FB069;
+  --light-color: #ECE4B7;
+  --dark-color: #02020B;
+  --semilight-color: #E6AA68;
+  --semidark-color: #D36135;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.logo-container{
+  max-width: 100px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden; /* Убирает прокрутку */
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+#main-container {
+  background-color: var(--main-bg-color);
+  min-height: 100vh; /* Высота на весь экран */
+  min-width: 100vw;  /* Ширина на весь экран */
+  display: flex; /* Позволяет центровать содержимое */
+  flex-direction: column;
+  justify-content: center; /* Центрирует по вертикали */
+  align-items: center; /* Центрирует по горизонтали */
+}
+
+#page-buttons {
+  display: flex;
+  justify-content: space-between; /* Распределяет кнопки равномерно */
+  width: 100%; /* Делает блок на всю ширину */
+  padding: 20px; /* Добавляет отступы */
+}
+
+#page-buttons button {
+  flex: 1; /* Каждая кнопка занимает равную часть доступного пространства */
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  align-items: center;
+  margin: 0 10px; /* Добавляет отступ между кнопками */
+  padding: 10px;
+  background-color: var(--light-color);
+  color: var(--dark-color);
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: large;
 }
 
-.App-link {
-  color: #61dafb;
+#page-buttons button img {
+  min-width: 5vw; /* Размер иконки */
+  margin: 5vh; /* Отступ между иконкой и текстом */
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+#page-buttons button:hover {
+  background-color: var(--semilight-color); /* Цвет при наведении */
+}
+
+.login-container {
+  position: absolute; /* Абсолютное позиционирование */
+  top: 20px; /* Располагаем кнопку на 20px от верха */
+  right: 20px; /* Располагаем кнопку на 20px от правого края */
 }
