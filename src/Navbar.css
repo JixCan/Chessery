@@ -58,5 +58,20 @@
 }
 
 .login-button {
+    background-color: var(--semidark-color);
+    color: #FFFFFF;
     margin-left: auto; /* Сдвинуть кнопку "Войти" вправо */
+    text-decoration: none; /* Убрать подчеркивание текста */
+    border: 1px solid var(--semidark-color); /* Чтобы был виден бордер */
+    transition: background-color 0.3s ease; /* Плавное изменение цвета фона */
+}
+
+.login-button:hover {
+    background-color: var(--semidark-hover-color); /* Цвет фона при наведении */
+}
+
+.login-button img {
+    width: 24px;
+    height: 24px;
+    margin-right: 8px;
 }
