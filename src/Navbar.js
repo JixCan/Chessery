@@ -1,6 +1,5 @@
-// Navbar.js
-import React from 'react';
 import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import PuzzleIcon from './assets/icons/puzzle.svg';
 import TimeIcon from './assets/icons/time.svg';
 import BookIcon from './assets/icons/book.svg';
@@ -8,6 +7,24 @@ import HomeIcon from './assets/icons/home.svg';
 import './Navbar.css';
 
 function Navbar() {
+  const [username, setUsername] = useState(null);
+
+  useEffect(() => {
+    const storedUsername = localStorage.getItem('username');
+    if (storedUsername) {
+      setUsername(storedUsername);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    localStorage.removeItem('rating');
+    localStorage.removeItem('pgn');
+    setUsername(null);
+    window.location.reload(); // Перезагружаем страницу после выхода
+  };
+
   return (
     <nav className="navbar">
       <div className="nav-links">
@@ -28,9 +45,14 @@ function Navbar() {
           <span>Репертуар</span>
         </Link>
       </div>
-      <Link to="/login" className="nav-link login-button">
-        <span>Войти</span>
-      </Link>
+      {username ? (
+        <div className="nav-user">
+          <span className='username-span'>{username}</span>
+          <button className="nav-link login-button" onClick={handleLogout}>Выйти</button>
+        </div>
+      ) : (
+        <Link to="/login" className="nav-link login-button">Войти</Link>
+      )}
     </nav>
   );
 }

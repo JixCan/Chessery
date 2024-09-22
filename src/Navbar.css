@@ -75,3 +75,10 @@
     height: 24px;
     margin-right: 8px;
 }
+
+.username-span{
+    margin: 1rem;
+    font-size: large;
+    font-weight: 700;
+    color: var(--semidark-hover-color);
+}
