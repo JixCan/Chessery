@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Chess } from 'chess.js';
-import Chessboard from 'chessboardjsx';
+import Board from './Board.tsx';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// Дефолтный FEN, который будет использоваться до получения данных
 const DEFAULT_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 export default function PuzzlesPage() {
@@ -16,25 +15,22 @@ export default function PuzzlesPage() {
   const [oldRating, setOldRating] = useState(null);
   const [puzzleRating, setPuzzleRating] = useState(null);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [boardOrientation, setBoardOrientation] = useState(false);
+  const [boardOrientation, setBoardOrientation] = useState('white');
   const [newRating, setNewRating] = useState(0);
-
-  //TODO: В БД заносится 0 рейтинг!!!
-  //TODO: 0 рейтинг при запуске страницы задач с уже выполненным входом
-  //TODO: Пофиксить ориентацию
 
   function getRandomPuzzle() {
     fetch('http://localhost:5000/api/random-puzzle')
       .then((response) => response.json())
       .then((data) => {
-        console.log('Получена новая задача:', data); // Выводим данные новой задачи
+        console.log('Получена новая задача:', data);
         setFen(data.fen);
         setCorrectMoves(data.moves.split(' '));
         setGame(new Chess(data.fen));
-        setIsUserTurn(data.fen.charAt(data.fen.length - 10) === 'w');
+        const isWhiteMove = data.fen.charAt(data.fen.length - 10) === 'w';
+        setBoardOrientation(isWhiteMove ? 'white' : 'black');
+        setIsUserTurn(isWhiteMove);
         setMoveIndex(0);
         setPuzzleRating(data.rating);
-        setBoardOrientation(data.fen.charAt(data.fen.length - 10));
         const storedRating = parseInt(localStorage.getItem('rating'));
         setOldRating(storedRating);
       })
@@ -51,7 +47,7 @@ export default function PuzzlesPage() {
     if (fen) {
       const gameCopy = new Chess(fen);
       setGame(gameCopy);
-      console.log('Обновлено FEN:', fen); // Выводим новое значение FEN
+      console.log('Обновлено FEN:', fen);
     }
   }, [fen]);
 
@@ -65,7 +61,7 @@ export default function PuzzlesPage() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify({ newRating: newRating }),
+      body: JSON.stringify({ newRating }),
     });
 
     if (response.ok) {
@@ -81,48 +77,45 @@ export default function PuzzlesPage() {
     return correctMoves.includes(move);
   }
 
-  function handleDrop({ sourceSquare, targetSquare, piece }) {
+  function handleMove(orig, dest) {
     if (!isUserTurn || isAnimating) {
       console.log('Не ваш ход или анимация еще не завершилась');
       return;
     }
 
-    const move = sourceSquare + targetSquare;
+    const move = orig + dest;
+    console.log(move);
 
     if (isMoveCorrect(move)) {
-      game.move({
-        from: sourceSquare,
-        to: targetSquare,
-        piece: piece.toLowerCase(),
-      });
 
       const currentFen = game.fen();
       setFen(currentFen);
-      console.log('Пользовательский ход выполнен, текущее FEN:', currentFen); // Выводим FEN после хода пользователя
+      console.log('Пользовательский ход выполнен, текущее FEN:', currentFen);
       setMoveIndex((prevIndex) => prevIndex + 1);
 
-      if (moveIndex + 1 < correctMoves.length) {
+      if (moveIndex < correctMoves.length - 1) {
         setIsAnimating(true);
-
+        const nextMove = correctMoves[moveIndex + 1];
         setTimeout(() => {
-          const nextMove = correctMoves[moveIndex + 1];
           game.move({ from: nextMove.slice(0, 2), to: nextMove.slice(2) });
-          const nextFen = game.fen();
-          setFen(nextFen);
-          console.log('Ход компьютера выполнен, новое FEN:', nextFen); // Выводим FEN после хода компьютера
+          setFen(game.fen());
+          console.log('Ход компьютера выполнен, новое FEN:', game.fen());
           setMoveIndex((prevIndex) => prevIndex + 1);
           setIsAnimating(false);
         }, 500);
       } else {
         toast.success('Задача решена!');
         setIsUserTurn(false);
-        console.log(`Math.round(${oldRating} + (${puzzleRating} / ${oldRating}) * 10);`)
         setNewRating(Math.round(oldRating + (puzzleRating / oldRating) * 10));
-        console.log("rating: ", newRating);
         updateUserRating(newRating);
       }
     } else {
       console.log('Неправильный ход:', move);
+      toast.error('Неправильный ход! Попробуйте снова.');
+      console.log(game.fen());
+      game.undo(); // Вернуть ход обратно
+      setFen(game.fen());
+      console.log(game.fen());
     }
   }
 
@@ -131,12 +124,14 @@ export default function PuzzlesPage() {
       return;
     }
 
-    const initialMove = correctMoves[0];
-    game.move({ from: initialMove.slice(0, 2), to: initialMove.slice(2) });
-    setFen(game.fen());
-    console.log('Первый ход компьютера выполнен, текущее FEN:', game.fen()); // Выводим FEN после первого хода
-    setMoveIndex(1);
-    setIsUserTurn(true);
+    const initialMove = correctMoves[moveIndex];
+    setTimeout(() => {
+      game.move({ from: initialMove.slice(0, 2), to: initialMove.slice(2) });
+      setFen(game.fen());
+      console.log('Первый ход компьютера выполнен, текущее FEN:', game.fen());
+      setMoveIndex((prevIndex) => prevIndex + 1);
+      setIsUserTurn(true);
+    }, 1000); // 1 секунда задержки перед выполнением первого хода
   }
 
   useEffect(() => {
@@ -149,13 +144,16 @@ export default function PuzzlesPage() {
     <div>
       <ToastContainer />
       <div id="puzzles-board">
-        <Chessboard
-          position={fen}
-          width={350}
-          draggable
-          onDrop={handleDrop}
-          orientation={boardOrientation === 'b' ? 'white' : 'black'}
-        />
+        {fen && game ? (
+          <Board
+            fen={fen}
+            game={game}
+            onMove={handleMove}
+            orientation={boardOrientation}
+          />
+        ) : (
+          <p>Загрузка задачи...</p>
+        )}
       </div>
       <h3>Ваш рейтинг: {newRating !== null ? newRating : oldRating}</h3>
       <button
