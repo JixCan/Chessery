@@ -19,6 +19,10 @@ export default function PuzzlesPage() {
   const [boardOrientation, setBoardOrientation] = useState(false);
   const [newRating, setNewRating] = useState(0);
 
+  //TODO: В БД заносится 0 рейтинг!!!
+  //TODO: 0 рейтинг при запуске страницы задач с уже выполненным входом
+  //TODO: Пофиксить ориентацию
+
   function getRandomPuzzle() {
     fetch('http://localhost:5000/api/random-puzzle')
       .then((response) => response.json())
