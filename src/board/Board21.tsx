@@ -36,6 +36,7 @@ export default function Board({ fen, game, orientation = 'white', onMove }: Boar
         fen: game.fen(),
         orientation: orientation,
         coordinates: true,
+        
         animation: {
           enabled: true,
           duration: 500,
