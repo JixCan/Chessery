@@ -1,5 +1,5 @@
 import Board from "./board/Board.tsx";
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Chess } from 'chess.js';
@@ -10,43 +10,50 @@ export default function PuzzlesPage() {
     const [fen, setFen] = useState(DEFAULT_FEN);
     const [boardOrientation, setBoardOrientation] = useState('white'); 
     const [moveIndex, setMoveIndex] = useState(0);
-    const [puzzleRating, setPuzzleRating] = useState(0);
-    const [userRating, setUserRating] = useState(0);
     const [correctMoves, setCorrectMoves] = useState([]);
     const [game, setGame] = useState(new Chess(fen));
     const [isAITurn, setIsAITurn] = useState(true);
+    const [orig, setOrig] = useState(null);
+    const [dest, setDest] = useState(null);
+    const [puzzleRating, setPuzzleRating] = useState(0);
+    const [userRating, setUserRating] = useState(0);
 
     const boardRef = useRef(null);
 
     function getRandomPuzzle() {
         fetch('http://localhost:5000/api/random-puzzle')
-          .then((response) => response.json())
-          .then((data) => {
-            console.log('Получена новая задача:', data);
-            setFen(data.fen);
-            setCorrectMoves(data.moves.split(' '));
-            setGame(new Chess(data.fen));
-            setIsAITurn(true);
-            setBoardOrientation(data.fen.split(' ')[1] === 'b' ? 'white' : 'black');
-            setMoveIndex(0);
-            setPuzzleRating(data.rating);
-            setUserRating(parseInt(localStorage.getItem('rating')));
-          })
-          .catch((error) => {
-            console.error('Ошибка при получении задачи:', error);
-          });
+            .then((response) => response.json())
+            .then((data) => {
+                console.log('Получена новая задача:', data);
+                // Обновление состояния
+                setFen(data.fen);
+                setCorrectMoves(data.moves.split(' '));
+                setGame(new Chess(data.fen));
+                setBoardOrientation(data.fen.split(' ')[1] === 'b' ? 'white' : 'black');
+                setMoveIndex(0);
+                setPuzzleRating(data.rating);
+                setUserRating(parseInt(localStorage.getItem('rating')));
+                //setIsAITurn(true);
+                // Делает первый ход AI после загрузки новой задачи
+                
+            })
+            // .then(() => {
+            //     if (correctMoves.length > 0) {
+            //         setTimeout(() => {
+            //             console.log('задача выполнить первый ход');
+            //             makeAIMove();
+            //         }, 1000);
+            //     }
+            // })
+            .catch((error) => {
+                console.error('Ошибка при получении задачи:', error);
+            });
     }
 
-    useEffect(() => {
-        if (correctMoves.length > 0 && moveIndex < correctMoves.length && isAITurn) {
-            setTimeout(() => {
-                makeNextAIMove();
-            }, 1000);
-        }
-    }, [fen, isAITurn, moveIndex]); 
+    const makeAIMove = useCallback(() => {
+        console.log("AI move executed");
+        // Логика AI-хода
 
-    function makeNextAIMove() {
-        setIsAITurn(false);
         const nextMove = correctMoves[moveIndex];
         const from = nextMove.slice(0, 2);
         const to = nextMove.slice(2, 4);
@@ -54,52 +61,37 @@ export default function PuzzlesPage() {
             boardRef.current.makeMove(from, to);
         }
         game.move({ from, to });
-        console.log("from ai: ", boardRef.current.getLegalMoves());
         setFen(game.fen());
         setMoveIndex((prevIndex) => prevIndex + 1);
-    }
 
-    function undoUserMove(from, to) {
-        if (boardRef.current) {
-            console.log("undo");
-            boardRef.current.makeMove(to, from);
-        }
-    }
+        setIsAITurn(false); // Теперь ожидать ход от AI
+    }, [correctMoves, moveIndex, game]); // Зависимости
 
-    function handleUserMove(orig, dest) {
-        //Нужно сделать отличие ходов компьютера от ходов юзера, тк они оба вызывают событие move
-        console.log("User tried to move a piece. Allowed? ", !isAITurn, " s", moveIndex % 2 == 0);
+    const handleUserMove = useCallback((orig, dest) => {
+        console.log("User move executed:", orig, dest);
+        // Логика обработки хода пользователя
+        // Добавьте здесь проверку, является ли ход пользователя корректным
+        const move = game.move({ from: orig, to: dest });
 
-        if (moveIndex % 2 == 0) return;
-
-        
-        if (isAITurn) {
-            console.log('Не ваш ход или анимация еще не завершилась');
-            return;
-        }
-        
-        const move = orig + dest;
-        console.log(move);
-    
-        if (correctMoves.includes(move)) {
-            game.move({ from: orig, to: dest });
+        if (move) {
+            // Если ход корректный, обновите состояние и переключите ход на AI
             setFen(game.fen());
-            console.log('Пользовательский ход выполнен, текущее FEN:', game.fen());
-            setMoveIndex((prevIndex) => prevIndex + 1);
-            setIsAITurn(true); // Устанавливаем, что теперь ход AI
+            setIsAITurn(true); // Теперь ожидать ход от AI
         } else {
-            console.log('Неправильный ход:', move);
-            toast.error('Неправильный ход! Попробуйте снова.');
-            undoUserMove(orig, dest);
+            console.log("Недопустимый ход");
+            toast.error("Недопустимый ход"); // Уведомление о неверном ходе
         }
-    }
+    }, [game]); // Зависимости
 
-    // Отслеживаем изменение isAITurn
-    /*useEffect(() => {
-        if (isAITurn && moveIndex < correctMoves.length) {
-            makeNextAIMove(); // Вызываем следующий ход AI, если это не ход AI
-        }
-    }, [isAITurn]);*/
+    useEffect(() => {
+        console.log("из useeffect", isAITurn);
+        if (isAITurn && correctMoves.length > 0) {
+            const timer = setTimeout(() => {
+                makeAIMove();
+            }, 1000);
+            return () => clearTimeout(timer); // Очистка таймера при размонтировании
+        } 
+    }, [isAITurn, correctMoves, makeAIMove]);
 
     return (
         <div>
@@ -109,7 +101,16 @@ export default function PuzzlesPage() {
                 game={game}
                 orientation={boardOrientation}
                 events={{
-                    move: handleUserMove
+                    move: (orig, dest) => {
+                        console.log(isAITurn, 'из события move');
+                        if (!isAITurn) { // Проверяем, что сейчас не ход AI
+                            setOrig(orig);
+                            setDest(dest);
+                            handleUserMove(orig, dest); // Вызываем функцию обработки хода пользователя
+                        } else {
+                            console.log("Ход AI, игнорируем событие");
+                        }
+                    }
                 }}
             />
             <button
@@ -122,3 +123,5 @@ export default function PuzzlesPage() {
         </div>
     );
 }
+
+// ПРОБЛЕМА: Невовремя обновляется isAITurn, из-за чего в events.more оно всегда true

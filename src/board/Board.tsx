@@ -62,7 +62,6 @@ class Board extends React.Component<BoardProperties> {
         dests.get(move.from).push(move.to);
       });
     }
-    console.log(dests);
     return dests;
   }
 
