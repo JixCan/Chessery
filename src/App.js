@@ -13,6 +13,7 @@ import BookIcon from './assets/icons/book.svg';
 
 function HomePage() {
   const navigate = useNavigate();
+  
   return (
     <div id="main-container">
       <div className="logo-container">

@@ -34,6 +34,7 @@ interface BoardProperties {
     dropNewPiece?: (piece: cg.Piece, key: cg.Key) => void;
     select?: (key: cg.Key) => void;
     insert?: (elements: cg.Elements) => void;
+    move1?: (orig: cg.Key, dest: cg.Key, isAITurn: boolean) => void;
   };
 }
 
