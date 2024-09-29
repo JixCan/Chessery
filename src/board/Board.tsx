@@ -70,7 +70,7 @@ class Board extends React.Component<BoardProperties> {
   makeMove(from: cg.Key, to: cg.Key) {
     if (this.groundInstance) {
       this.groundInstance.move(from, to);
-      console.log(`Ход выполнен: ${from} -> ${to}`);
+      console.log(`Move executed: ${from} -> ${to}`);
     }
   }
 
