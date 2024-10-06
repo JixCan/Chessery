@@ -36,23 +36,29 @@ interface BoardProperties {
     insert?: (elements: cg.Elements) => void;
     move1?: (orig: cg.Key, dest: cg.Key, isAITurn: boolean) => void;
   };
+  width?: string; // Теперь принимаем строку для ширины (например, "20rem", "400px")
+  height?: string; // Теперь принимаем строку для высоты (например, "20rem", "400px")
 }
 
 class Board extends React.Component<BoardProperties> {
   private boardRef: React.RefObject<HTMLDivElement>;
   private groundInstance: ReturnType<typeof Chessground> | null;
 
+  static defaultProps = {
+    width: '25rem', // Ширина по умолчанию в rem
+    height: '25rem', // Высота по умолчанию в rem
+  };
+
   constructor(props: BoardProperties) {
     super(props);
-    this.boardRef = React.createRef(); // Создаем реф для доски
+    this.boardRef = React.createRef();
     this.groundInstance = null;
   }
 
-  // Метод для получения допустимых ходов
   getLegalMoves() {
     const dests = new Map();
     const { game } = this.props;
-    
+
     if (game) {
       let allLegalMoves = game.moves({ verbose: true });
 
@@ -66,7 +72,6 @@ class Board extends React.Component<BoardProperties> {
     return dests;
   }
 
-  // Метод, который будет выполняться для хода
   makeMove(from: cg.Key, to: cg.Key) {
     if (this.groundInstance) {
       this.groundInstance.move(from, to);
@@ -79,7 +84,7 @@ class Board extends React.Component<BoardProperties> {
       const config: Config = {
         fen: this.props.fen,
         orientation: this.props.orientation,
-        coordinates: this.props.coordinates ?? true, // Опциональные параметры
+        coordinates: this.props.coordinates ?? true,
         turnColor: this.props.turnColor || 'white',
         viewOnly: this.props.viewOnly || false,
         disableContextMenu: this.props.disableContextMenu || true,
@@ -101,12 +106,15 @@ class Board extends React.Component<BoardProperties> {
   componentDidUpdate(prevProps: BoardProperties) {
     if (prevProps.fen !== this.props.fen) {
       if (this.groundInstance) {
-        this.groundInstance.set({ fen: this.props.fen,  movable: {
+        this.groundInstance.set({
+          fen: this.props.fen,
+          movable: {
             color: 'both',
             free: false,
             dests: this.getLegalMoves(),
             showDests: true,
-          },});
+          },
+        });
       }
     }
   }
@@ -118,9 +126,17 @@ class Board extends React.Component<BoardProperties> {
   }
 
   render() {
+    const { width, height } = this.props;
+
     return (
       <div>
-        <div ref={this.boardRef} style={{ width: '400px', height: '400px' }}></div>
+        <div
+          ref={this.boardRef}
+          style={{
+            width: width || '25rem', // Используем ширину из пропсов
+            height: height || '25rem', // Используем высоту из пропсов
+          }}
+        ></div>
       </div>
     );
   }

@@ -1,0 +1,26 @@
+.endgameGrid{
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    grid-template-rows: 0.5fr 2fr;
+    grid-column-gap: 0px;
+    grid-row-gap: 0px;
+}
+
+.logoElement { grid-area: 1 / 1 / 2 / 2; width: 25rem;}
+.endgameSelectBoxElement { 
+    display: flex;
+    flex-direction: column;
+    grid-area: 2 / 1 / 3 / 2; 
+    width: 25rem;
+}
+.boardElement { grid-area: 1 / 2 / 3 / 3; height: max-content;}
+.descElement { grid-area: 1 / 3 / 2 / 4; }
+.taskElement { grid-area: 2 / 3 / 3 / 4; }
+
+.ge { 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    border: 1px solid #ccc;
+}
