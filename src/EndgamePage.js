@@ -32,6 +32,8 @@ export default function EndgamePage() {
     const boardRef = useRef(null);
     const [fen, setFen] = useState(""); // Изначально пустой FEN
     const [game, setGame] = useState(new Chess()); // Инициализируем игру без FEN
+    const [positionEvaluation, setPositionEvaluation] = useState("Оценка позиции: неизвестно");
+    
     game.clear();
     const selectedEndgameRef = useRef(endgameOptions[0]);
     const [selectedEndgame, setSelectedEndgame] = useState(endgameOptions[0]);
@@ -83,6 +85,7 @@ export default function EndgamePage() {
                 isValid = true;
                 setFen(fen);
                 setGame(newGame);
+                evaluatePosition(fen); // Оценка позиции после установки
             } else {
                 attempts++;
             }
@@ -92,6 +95,54 @@ export default function EndgamePage() {
             toast.error("Не удалось сгенерировать валидную позицию после 10 попыток.");
         }
     }
+
+    async function evaluatePosition(fen) {
+        try {
+            // Декодируем FEN для передачи в запрос
+            const normalizedFen = decodeURIComponent(fen.trim());
+    
+            // Выполняем запрос к Lichess Tablebase API
+            const response = await fetch(`http://tablebase.lichess.ovh/standard?fen=${normalizedFen}`);
+            const data = await response.json();
+    
+            // Анализируем полученные данные
+            if (data) {
+                if (data.checkmate) {
+                    setPositionEvaluation("Позиция ведет к мату.");
+                } else if (data.stalemate) {
+                    setPositionEvaluation("Позиция ведет к ничьей (пат).");
+                } else if (data.insufficient_material) {
+                    setPositionEvaluation("Недостаточно материала для победы.");
+                } else if (data.category === "win") {
+                    setPositionEvaluation("Позиция выиграна.");
+                } else if (data.category === "draw") {
+                    setPositionEvaluation("Позиция ничейная.");
+                } else if (data.category === "loss") {
+                    setPositionEvaluation("Позиция проиграна.");
+                } else {
+                    setPositionEvaluation("Оценка позиции неизвестна.");
+                }
+    
+                // Лучшая линия ходов, если она доступна
+                if (data.moves && data.moves.length > 0) {
+                    const bestMove = data.moves[0];
+                    const moveCategory = bestMove.category;
+                    const dtm = bestMove.dtm ? `Мат через ${Math.abs(bestMove.dtm)} ходов.` : '';
+    
+                    setPositionEvaluation((prevEvaluation) =>
+                        `${prevEvaluation} Лучшая линия: ${bestMove.san} (${moveCategory}). ${dtm}`
+                    );
+                }
+            } else {
+                setPositionEvaluation("Позиция не может быть оценена.");
+            }
+        } catch (error) {
+            setPositionEvaluation("Ошибка при оценке позиции.");
+            console.error(error);
+        }
+    }
+    
+    
 
     useEffect(() => {
         setPosition(selectedEndgame); // Устанавливаем начальные фигуры при первом рендере
@@ -125,7 +176,9 @@ export default function EndgamePage() {
                     height="30rem" // Высота в rem
                 />
             </div>
-            <div className="descElement ge"><p>description</p></div>
+            <div className="descElement ge">
+                <p>{positionEvaluation}</p>
+            </div>
             <div className="taskElement ge"><h1>Task</h1></div>
             <ToastContainer />
         </div>
