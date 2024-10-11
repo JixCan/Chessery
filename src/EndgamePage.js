@@ -31,6 +31,8 @@ const endgameOptions = [
 export default function EndgamePage() {
     const boardRef = useRef(null);
     const [fen, setFen] = useState(""); // Изначально пустой FEN
+    const [isLoading, setIsLoading] = useState(true); // Состояние загрузки
+
     const [game, setGame] = useState(new Chess()); // Инициализируем игру без FEN
     const [positionEvaluation, setPositionEvaluation] = useState("Оценка позиции: неизвестно");
     
@@ -62,50 +64,41 @@ export default function EndgamePage() {
     }
 
     function setPosition(option) {
-        let isValid = false;
-        let attempts = 0;
-
-        while (!isValid && attempts < 10) {
-            const newGame = new Chess(); // Создаем новую игру
-            newGame.clear();
-            const occupiedPositions = new Set();
-            option.pieces.forEach(piece => {
-                let position;
-                do {
-                    position = getRandomPosition();
-                } while (occupiedPositions.has(position));
-
-                occupiedPositions.add(position);
-                newGame.put({ type: piece.role[0], color: piece.color[0] }, position); // Добавляем фигуру на доску
-            });
-
-            const fen = newGame.fen();
-            const { ok } = validateFen(fen);
-            if (ok) {
-                isValid = true;
-                setFen(fen);
-                setGame(newGame);
-                evaluatePosition(fen); // Оценка позиции после установки
-            } else {
-                attempts++;
-            }
-        }
-
-        if (attempts >= 10) {
-            toast.error("Не удалось сгенерировать валидную позицию после 10 попыток.");
-        }
+        setIsLoading(true); // Включаем режим загрузки
+    
+        const newGame = new Chess(); // Создаем новую игру
+        newGame.clear();
+        const occupiedPositions = new Set();
+        option.pieces.forEach(piece => {
+            let position;
+            do {
+                position = getRandomPosition();
+            } while (occupiedPositions.has(position));
+    
+            occupiedPositions.add(position);
+            newGame.put({ type: piece.role[0], color: piece.color[0] }, position); // Добавляем фигуру на доску
+        });
+    
+        const fen = newGame.fen();
+        setFen(fen);
+        setGame(newGame);
+        evaluatePosition(fen); // Оценка позиции после установки
     }
-
+    
+    
     async function evaluatePosition(fen) {
         try {
-            // Декодируем FEN для передачи в запрос
             const normalizedFen = decodeURIComponent(fen.trim());
     
-            // Выполняем запрос к Lichess Tablebase API
             const response = await fetch(`http://tablebase.lichess.ovh/standard?fen=${normalizedFen}`);
+    
+            if (!response.ok) {
+                regeneratePosition();
+                return;
+            }
+    
             const data = await response.json();
     
-            // Анализируем полученные данные
             if (data) {
                 if (data.checkmate) {
                     setPositionEvaluation("Позиция ведет к мату.");
@@ -123,7 +116,6 @@ export default function EndgamePage() {
                     setPositionEvaluation("Оценка позиции неизвестна.");
                 }
     
-                // Лучшая линия ходов, если она доступна
                 if (data.moves && data.moves.length > 0) {
                     const bestMove = data.moves[0];
                     const moveCategory = bestMove.category;
@@ -136,14 +128,19 @@ export default function EndgamePage() {
             } else {
                 setPositionEvaluation("Позиция не может быть оценена.");
             }
+    
+            // Вызываем функцию с задержкой
+            stopLoadingWithDelay(); 
+    
         } catch (error) {
             setPositionEvaluation("Ошибка при оценке позиции.");
+            stopLoadingWithDelay(); // Отключаем режим загрузки даже при ошибке
             console.error(error);
         }
     }
     
     
-
+    
     useEffect(() => {
         setPosition(selectedEndgame); // Устанавливаем начальные фигуры при первом рендере
     }, []);
@@ -151,6 +148,12 @@ export default function EndgamePage() {
     // Функция для повторной генерации позиции
     function regeneratePosition() {
         setPosition(selectedEndgame);
+    }
+
+    function stopLoadingWithDelay() {
+        setTimeout(() => {
+            setIsLoading(false); // Отключаем режим загрузки через полсекунды
+        }, 500);
     }
 
     return (
@@ -165,6 +168,7 @@ export default function EndgamePage() {
                 <button onClick={regeneratePosition}>Обновить</button>
             </div>
             <div className="boardElement ge">
+                {isLoading && <div className="loadingOverlay">Загрузка...</div>}
                 <Board
                     ref={boardRef}
                     fen={fen}
